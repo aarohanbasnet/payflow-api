@@ -1,0 +1,30 @@
+{
+  "name": "payflow-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aarohanbasnet/payflow-api.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/aarohanbasnet/payflow-api/issues"
+  },
+  "homepage": "https://github.com/aarohanbasnet/payflow-api#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.1.1",
+    "prisma": "^7.8.0",
+    "tsx": "^4.23.0",
+    "typescript": "^7.0.2"
+  }
+}
