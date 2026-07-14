@@ -57,5 +57,25 @@ model Account {
   userId String @unique
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  sentTransactions Transaction[] @relation("Sender")
+  receivedTransactions Transaction[] @relation("Receiver")
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Transaction {
+  id String @id @default(uuid())
+  reference String @unique
+  amount Decimal
+  type TransactionType
+  status TransactionStatus
+  utilityType UtilityType
+  remarks String?
+
+  senderAccountId String?
+  senderAccount Account? @relation("Sender",fields: [senderAccountId], references: [id])
+  receiverAccountId String?
+  receiverAccount Account? @relation("Receiver",fields: [receiverAccountId], references: [id])
+  createdAt DateTime @default(now())
 }
