@@ -11,3 +11,51 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum TransactionType {
+  DEPOSIT
+  TRANSFER
+  UTIlity_PAYMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum UtilityType {
+  ELECTRICITY
+  WATER
+  INTERNET
+  TV
+  MOBILE_TOPUP
+}
+
+model User {
+  id String @id @default(uuid())
+  name String
+  username String @unique
+  email String @unique
+  phone String @unique
+  password String
+  mpin String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  account Account?
+  // otps otp[]
+  // refreshToken refreshToken[]
+
+}
+
+model Account {
+  id String @id @default(uuid())
+  accountNumber String @unique
+  balance Decimal @default(0)
+  userId String @unique
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+
+}
