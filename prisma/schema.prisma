@@ -45,7 +45,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   account Account?
-  // otps otp[]
+  otps OTP[]
   // refreshToken refreshToken[]
 
 }
@@ -79,3 +79,14 @@ model Transaction {
   receiverAccount Account? @relation("Receiver",fields: [receiverAccountId], references: [id])
   createdAt DateTime @default(now())
 }
+
+model OTP {
+  id String @id@default(cuid())
+  code String
+  expiresAt DateTime
+  isUsed Boolean @default(false)
+  userId String
+  user User @relation(fields : [userId], references:[id], onDelete: Cascade)
+  createdAr DateTime @default(now())
+}
+
