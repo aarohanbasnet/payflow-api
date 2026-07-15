@@ -46,7 +46,7 @@ model User {
 
   account Account?
   otps OTP[]
-  // refreshToken refreshToken[]
+  refreshToken refreshToken[]
 
 }
 
@@ -90,3 +90,11 @@ model OTP {
   createdAr DateTime @default(now())
 }
 
+model refreshToken {
+  id String @id @default(cuid())
+  token String @unique
+  expiresAt DateTime
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
