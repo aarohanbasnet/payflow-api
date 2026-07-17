@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "../utils/error.js";
 
-export function errorHandler( err : unknown, req : Request, res : Response, next : NextFunction) : void{
+export function errorHandler( err : unknown, req : Request, res : Response, next : NextFunction) : void{  //using all these parameters so that express can distinguish if it's an error handler or not
     const statusCode = err instanceof AppError ? err.statusCode : 500;
     const message = err instanceof AppError ? err.message : 'Internal server error';
 
