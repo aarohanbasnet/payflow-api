@@ -12,7 +12,7 @@ export const register = async ( data : RegisterInput  ) =>{
     });
 
     if (exitingUser) {
-        throw new Error("Email already exists");
+        throw new Error("User with this email already exists");
     }
 
     //hash password here bcrypt from util
