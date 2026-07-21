@@ -1,6 +1,6 @@
 import { z } from "zod"
-import { prisma }  from "../../src/config/prisma";
-import { registerUserSchema } from "./auth.schema";
+import { prisma }  from "../../config/prisma.js";
+import { registerUserSchema } from "./auth.schema.js";
 
 type RegisterInput = z.infer<typeof registerUserSchema>  //write notes here
 
