@@ -37,6 +37,7 @@ model User {
   name String
   username String @unique
   email String @unique
+  isVerified Boolean @default(false)
   phone String @unique
   password String
   mpin String?
