@@ -35,7 +35,7 @@ enum UtilityType {
 model User {
   id String @id @default(uuid())
   name String
-  username String @unique
+  payId String @unique
   email String @unique
   isVerified Boolean @default(false)
   phone String @unique
