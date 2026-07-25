@@ -5,4 +5,5 @@ export const env = {
     PORT : process.env.PORT!,
     ACCESS_TOKEN_SECRET_KEY : process.env.ACCESS_TOKEN_SECRET_KEY!,
     REFRESH_TOKEN_SECRET_KEY : process.env.REFRESH_TOKEN_SECRET_KEY!,
+    REFRESH_TOKEN_TTL_MS : Number(process.env.REFRESH_TOKEN_TTL_MS)!,
 }
