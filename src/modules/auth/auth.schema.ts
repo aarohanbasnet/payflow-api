@@ -24,8 +24,8 @@ export const loginUserSchema = z.object({
 })
 .refine(
     (data) => 
-    (data.password && data.mpin) ||
-    (!data.password && !data.mpin),
+    (data.password && !data.mpin) ||    //XOR operation either password or mpin
+    (!data.password && data.mpin),
     {
         message : "Provide either password or MPIN",
         path : ["password"],  //which filed should receive error

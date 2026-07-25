@@ -1,17 +1,19 @@
 import { z } from "zod"
+import { env }from "../../config/env.js"
 import { prisma }  from "../../config/prisma.js";
-import { registerUserSchema } from "./auth.schema.js";
+import { loginUserSchema, registerUserSchema } from "./auth.schema.js";
 import { AppError } from "../../utils/error.js";
-import { hash } from "../../utils/hash.js";
+import { hash, compare} from "../../utils/hash.js";
 import { generateAccountNumber } from "../../utils/accountNumber.js";
 import { generateUsername } from "../../utils/username.js";
 import { generateOTP, getOTPExpiry, isOTPExpired } from "../../utils/otp.js";
-import { compare } from "../../utils/hash.js";
+import { generateAccessToken, generateRefreshToken } from "../../utils/jwt.js";
 
 
-type RegisterInput = z.infer<typeof registerUserSchema>  // z.infer = If this schema validates successfully, what will the resulting TypeScript type be?
+type RegisterInput = z.infer<typeof registerUserSchema>
+type LoginInput = z.infer<typeof loginUserSchema>  // z.infer = If this schema validates successfully, what will the resulting TypeScript type be?
 
-export const registerUser = async function ( input:RegisterInput) {
+export const registerUser = async  ( input:RegisterInput) =>{
     const existingUser = await prisma.user.findFirst({
         where : {
             OR : [
@@ -64,7 +66,7 @@ export const registerUser = async function ( input:RegisterInput) {
 };
 
 
-export const verifyOtp = async (userId : string, code : string) => {
+export const verifyOtp = async (userId : string, code : string) =>{
     const otp = await prisma.oTP.findFirst({
         where : {userId, isUsed : false},
         orderBy : {createdAt : "desc"}
@@ -85,4 +87,60 @@ export const verifyOtp = async (userId : string, code : string) => {
     ]);
 
     return {verified : true};
+}
+
+
+
+export const loginUser = async (input : LoginInput) : Promise<object> => {
+    const user = await prisma.user.findFirst({
+        where : {
+            OR : [
+                {email : input.identifier},
+                {username : input.identifier},
+                {phone : input.identifier},
+            ],
+        },
+    });
+
+    if(!user) throw new AppError("Invalid Credentials", 401);
+
+    //Login with password
+    if(input.password) {
+        const isPasswordValid = await compare(input.password, user.password);
+
+        if(!isPasswordValid) {
+            throw new AppError("Invalid credentials", 401);
+        }
+    }
+    //Login with MPIN
+    else if (input.mpin) {
+
+        if(!user.mpin) {
+            throw new AppError("Invalid credentials", 401);
+        }
+
+        const isMpinValid = await compare(input.mpin, user.mpin);
+
+        if(!isMpinValid) {
+            throw new AppError("Invalid credentials", 401);
+        }
+    };
+
+    if(!user.isVerified) throw new AppError("Account not verified", 403);
+
+    const accessToken = generateAccessToken({ userId : user.id});
+    const refreshToken = generateRefreshToken({ userId : user.id});
+    const hashedRefreshToken = await hash(refreshToken);
+
+    const REFRESH_TOKEN_TTL_MS = env.REFRESH_TOKEN_TTL_MS;
+
+    await prisma.refreshToken.create({
+        data : {
+            token :  hashedRefreshToken,
+            userId : user.id,
+            expiresAt : new Date(Date.now() + REFRESH_TOKEN_TTL_MS )
+        },
+    });
+
+    return {accessToken, refreshToken}
 }
