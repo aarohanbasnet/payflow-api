@@ -7,7 +7,7 @@ import { hash, compare} from "../../utils/hash.js";
 import { generateAccountNumber } from "../../utils/accountNumber.js";
 import { generateUsername } from "../../utils/username.js";
 import { generateOTP, getOTPExpiry, isOTPExpired } from "../../utils/otp.js";
-import { generateAccessToken, generateRefreshToken } from "../../utils/jwt.js";
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../../utils/jwt.js";
 
 
 type RegisterInput = z.infer<typeof registerUserSchema>
@@ -91,7 +91,7 @@ export const verifyOtp = async (userId : string, code : string) =>{
 
 
 
-export const loginUser = async (input : LoginInput) : Promise<object> => {
+export const loginUser = async (input : LoginInput)  => {
     const user = await prisma.user.findFirst({
         where : {
             OR : [
@@ -143,4 +143,53 @@ export const loginUser = async (input : LoginInput) : Promise<object> => {
     });
 
     return {accessToken, refreshToken}
+}
+
+//rotate refresh token
+export const refreshToken = async ( token : string) => {
+
+    const payload = verifyRefreshToken(token);
+    const stored = await prisma.refreshToken.findUnique({
+        where : { userId : payload.userId }
+    });
+
+    if(!stored){
+        throw new AppError("Refresh token expired, please login again", 401);
+    } 
+
+    if(stored.expiresAt.getTime()< Date.now()){
+        throw new AppError("Invalid or expired refresh token", 401);
+    }
+
+    const isValid = await compare(token, stored.token);
+
+    if(!isValid) {
+        throw new AppError("Invalid or expired refresh token", 401);
+    }
+    
+    const newAccessToken = generateAccessToken({ userId : payload.userId });
+    const newRefreshToken = generateRefreshToken({userId : payload.userId});
+
+    const hashedRefreshToken = await hash (newRefreshToken);
+
+    await prisma.refreshToken.update({
+        where : {
+            userId : payload.userId,
+        },
+        data : {
+            token : hashedRefreshToken,
+            expiresAt : new Date(Date.now() + env.REFRESH_TOKEN_TTL_MS),
+        },
+    });
+
+    return {
+        accessToken : newAccessToken,
+        refreshToken : newRefreshToken,
+    };
+}
+
+
+export const logoutUser = async (token : string)=> {
+    await prisma.refreshToken.deleteMany({where : {token} });
+    return {loggedOut : true};
 }
