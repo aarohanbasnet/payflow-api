@@ -94,9 +94,9 @@ model OTP {
 
 model refreshToken {
   id String @id @default(cuid())
-  token String @unique
+  token String 
   expiresAt DateTime
-  userId String
+  userId String @unique
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }
