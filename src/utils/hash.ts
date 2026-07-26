@@ -1,5 +1,4 @@
 import bcrypt from "bcrypt";
-import e from "express";
 
 export const hash = async function (input:string) : Promise <string> {
     const salt = await bcrypt.genSalt(10);
