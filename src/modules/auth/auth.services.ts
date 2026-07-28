@@ -1,19 +1,15 @@
 import { z } from "zod"
 import { env }from "../../config/env.js"
 import { prisma }  from "../../config/prisma.js";
-import { loginUserSchema, registerUserSchema } from "./auth.schema.js";
 import { AppError } from "../../utils/error.js";
 import { hash, compare} from "../../utils/hash.js";
 import { generateAccountNumber } from "../../utils/accountNumber.js";
 import { generateUsername } from "../../utils/username.js";
 import { generateOTP, getOTPExpiry, isOTPExpired } from "../../utils/otp.js";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../../utils/jwt.js";
+import { RefreshTokenInput, LoginInput, LogoutInput, VerifyOtpInput, RegisterInput } from "./auth.schema.js";
 
-
-type RegisterInput = z.infer<typeof registerUserSchema>
-type LoginInput = z.infer<typeof loginUserSchema>  // z.infer = If this schema validates successfully, what will the resulting TypeScript type be?
-
-export const registerUser = async  ( input:RegisterInput) =>{
+export const registerUser = async  ( input: RegisterInput) =>{
     const existingUser = await prisma.user.findFirst({
         where : {
             OR : [
@@ -66,7 +62,8 @@ export const registerUser = async  ( input:RegisterInput) =>{
 };
 
 
-export const verifyOtp = async (userId : string, code : string) =>{
+export const verifyOtp = async ( input : VerifyOtpInput ) =>{
+    const {userId, code} = input
     const otp = await prisma.oTP.findFirst({
         where : {userId, isUsed : false},
         orderBy : {createdAt : "desc"}
@@ -190,6 +187,7 @@ export const refreshToken = async ( token : string) => {
 
 
 export const logoutUser = async (token : string)=> {
-    await prisma.refreshToken.deleteMany({where : {token} });
+    const payload = verifyRefreshToken(token);
+    await prisma.refreshToken.deleteMany({where : {userId : payload.userId} });
     return {loggedOut : true};
 }
