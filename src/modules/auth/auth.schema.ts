@@ -30,4 +30,25 @@ export const loginUserSchema = z.object({
         message : "Provide either password or MPIN",
         path : ["password"],  //which filed should receive error
     }
-)
+);
+
+export const verifyOtpSchema = z.object({
+    userId : z.string().min(1, "userId is requied"),
+    code : z.string().length(6, "OTP must be 6 digits")
+});
+
+export const refreshTokenSchema = z.object({
+    token : z.string().min(1, "Refresh token is required")
+});
+
+export const logoutSchema = z.object({
+    token : z.string().min(1, "Refresh token is required")
+});
+
+
+// z.infer = If this schema validates successfully, what will the resulting TypeScript type be?
+export type RegisterInput = z.infer< typeof registerUserSchema>;
+export type LoginInput = z.infer< typeof loginUserSchema>;
+export type LogoutInput = z.infer< typeof logoutSchema>;
+export type RefreshTokenInput = z.infer< typeof refreshTokenSchema>;
+export type VerifyOtpInput = z.infer< typeof verifyOtpSchema>;
