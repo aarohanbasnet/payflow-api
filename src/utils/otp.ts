@@ -1,7 +1,7 @@
 import crypto from "crypto";
 
 export const generateOTP = ():string =>{
-    return crypto.randomInt(100000, 100000).toString();
+    return crypto.randomInt(100000, 1000000).toString();
 }
 
 export const getOTPExpiry = (minutes = 10) : Date =>{
