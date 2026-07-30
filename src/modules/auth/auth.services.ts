@@ -58,7 +58,8 @@ export const registerUser = async  ( input: RegisterInput) =>{
         email : user.email,
         username : user.username,
         accountNumber : user.account?.accountNumber,
-    }
+        ...(process.env.NODE_ENV !== "production" && {otp : otpCode})
+    };
 };
 
 
