@@ -10,7 +10,7 @@ export const registerController =  async (
     res : Response
 ) => {
     const input = req.body as RegisterInput;
-    const { id ,name, email ,username ,accountNumber } = await registerUser(input);
+    const { id ,name, email ,username ,accountNumber, otp} = await registerUser(input);
     
     return res.status(201).json({
         success : true,
@@ -20,7 +20,8 @@ export const registerController =  async (
             name,
             email,
             username,
-            accountNumber
+            accountNumber,
+            ...(otp && {otp})
         },
     });
 };
