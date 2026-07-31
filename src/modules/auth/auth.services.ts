@@ -132,11 +132,26 @@ export const loginUser = async (input : LoginInput)  => {
 
     const REFRESH_TOKEN_TTL_MS = env.REFRESH_TOKEN_TTL_MS;
 
-    await prisma.refreshToken.create({
-        data : {
-            token :  hashedRefreshToken,
+    // await prisma.refreshToken.create({
+    //     data : {
+    //         token :  hashedRefreshToken,
+    //         userId : user.id,
+    //         expiresAt : new Date(Date.now() + REFRESH_TOKEN_TTL_MS )
+    //     },
+    // });
+
+    await prisma.refreshToken.upsert({
+        where : {
             userId : user.id,
-            expiresAt : new Date(Date.now() + REFRESH_TOKEN_TTL_MS )
+        },
+        update : {
+            token : hashedRefreshToken,
+            expiresAt : new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
+        },
+        create : {
+            userId : user.id,
+            token : hashedRefreshToken,
+            expiresAt : new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
         },
     });
 
@@ -189,6 +204,6 @@ export const refreshToken = async ( token : string) => {
 
 export const logoutUser = async (token : string)=> {
     const payload = verifyRefreshToken(token);
-    await prisma.refreshToken.deleteMany({where : {userId : payload.userId} });
+    await prisma.refreshToken.delete({where : {userId : payload.userId} });
     return {loggedOut : true};
 }
