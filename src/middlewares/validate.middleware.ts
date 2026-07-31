@@ -1,8 +1,8 @@
 import {Request, Response, NextFunction} from "express";
-import { ZodAny } from "zod";
+import { z } from "zod";
 import { AppError } from "../utils/error.js";
 
-export const validate = (schema : ZodAny)=>
+export const validate = (schema : z.ZodSchema)=>
      (req : Request, res : Response, next : NextFunction):void =>{
         const result = schema.safeParse(req.body);
 

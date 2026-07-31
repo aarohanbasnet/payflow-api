@@ -1,9 +1,9 @@
 import {Request, Response, NextFunction} from "express";
 import { AppError } from "../utils/error.js";
-import { JWTPayload, verifyAccessToken } from "../utils/jwt.utils.js";
+import { JWTPayload, verifyAccessToken } from "../utils/jwt.js";
 
-interface customRequest extends Request{
-    user : JWTPayload;
+export interface customRequest extends Request{
+    user? : JWTPayload; // Optional because unauthenticated routes won't have it
 }
 
 export const isLoggedin = (req : customRequest, res: Response, next : NextFunction)=>{

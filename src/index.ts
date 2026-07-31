@@ -1,13 +1,8 @@
-import express from "express";
+import app from "./server.js"
 import {env} from "./config/env.js";
 
-const app = express();
-app.use(express.json());
+const PORT = env.PORT || 5000;
 
-app.get('/', (req, res)=>{
-    res.send("Payflow API is running");
-});
-
-app.listen(env.PORT, ()=>{
-    console.log(`Server running on port ${env.PORT}`);
-});
+const server = app.listen(PORT, ()=>{
+    console.log(`Server running at http://localhost:${PORT}`);
+})
