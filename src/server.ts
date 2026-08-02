@@ -4,7 +4,6 @@ import authRoutes from "../src/modules/auth/auth.route.js";
 import userRoutes from "../src/modules/user/user.routes.js"
 import { errorHandler } from "./middlewares/errorHandler.js";
 import dotenv from "dotenv";
-import { isLoggedin } from "./middlewares/auth.middleware.js";
 
 dotenv.config();
 
