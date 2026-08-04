@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { env }from "../config/env.js"
+import { AppError } from "./error.js";
 
 
 export interface JWTPayload {
@@ -17,8 +18,37 @@ export const generateRefreshToken = ( payload : JWTPayload ) : string => {
     )};
 
 export const verifyAccessToken = (token  : string) : JWTPayload => {
-    return jwt.verify(token, env.ACCESS_TOKEN_SECRET_KEY) as JWTPayload
+    try{
+    return jwt.verify(
+        token, 
+        env.ACCESS_TOKEN_SECRET_KEY) as JWTPayload;
+    } catch (error) {
+        if(error instanceof jwt.TokenExpiredError){
+            throw new AppError("Access token expired", 401);
+        }
+
+        if(error instanceof jwt.JsonWebTokenError){
+            throw new AppError("Invalid access token", 401);
+        }
+
+        throw error;
+    }
 }
 export const verifyRefreshToken = (token  : string) : JWTPayload => {
-    return jwt.verify(token, env.REFRESH_TOKEN_SECRET_KEY) as JWTPayload
+    try{
+    return jwt.verify(
+        token, 
+        env.REFRESH_TOKEN_SECRET_KEY) as JWTPayload;
+
+    } catch (error) {
+        if(error instanceof jwt.TokenExpiredError){
+            throw new AppError("Access token expired", 401);
+        }
+
+        if(error instanceof jwt.JsonWebTokenError){
+            throw new AppError("Invalid access token", 401);
+        }
+
+        throw error;
+    }
 }
