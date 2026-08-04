@@ -2,13 +2,17 @@
 //wrap deposit and withdraw in prisma.transaction and create a transaction record
 import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../utils/error.js";
-import { DepositInput } from "./account.schema.js";
+import { DepositInput, WithdrawInput } from "./account.schema.js";
 
- type AccountAmountInput = DepositInput & {
+ type DepositServiceInput = DepositInput & {
     userId : string
  };
 
- export const deposit = async ( input : AccountAmountInput) => {
+ type WithdrawServiceInput = WithdrawInput & {
+    userId : string;
+ }
+
+ export const deposit = async ( input : DepositServiceInput) => {
     const {amount, userId} = input;
 
     const account = await prisma.account.findUnique({
@@ -45,7 +49,7 @@ import { DepositInput } from "./account.schema.js";
 
 
 
- export const withdraw = async ( input : AccountAmountInput) => {
+ export const withdraw = async ( input : WithdrawServiceInput) => {
     const {amount, userId} = input;
 
     const account = await prisma.account.findUnique({
