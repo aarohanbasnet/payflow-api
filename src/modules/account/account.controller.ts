@@ -31,13 +31,13 @@ export const withdrawController = async(
     res : Response
 ) => {
  const userId = req.user?.userId;
- const { amount } = req.body as WithdrawInput;
+ const { amount, mpin } = req.body as WithdrawInput;
 
  if(! userId){
     throw new AppError("Unauthorized", 401)
  }
 
- const result = await withdraw({userId, amount});
+ const result = await withdraw({userId, amount, mpin});
 
  res.status(200).json({
     success : true,
