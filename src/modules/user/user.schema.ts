@@ -1,7 +1,7 @@
 import {z} from "zod";
 
 export const mpinSetupSchema = z.object({
-    code : z.string()
+    mpin : z.string()
     .trim()
     .regex(/^\d{4}$/, "MPIN must be exactly 4 digits"),
 });
