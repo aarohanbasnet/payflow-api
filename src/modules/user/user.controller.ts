@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { getUserProfile, setUserMpin } from "./user.service.js";
 import { customRequest } from "../../middlewares/auth.middleware.js";
 import { AppError } from "../../utils/error.js";
+import { mpinInput } from "./user.schema.js";
 
 export const userProfileController = async (
     req : customRequest,
@@ -26,14 +27,14 @@ export const setUserMpinController = async (
     res : Response
 ) : Promise<void> => {
 
+    const input = req.body as mpinInput;
     const userId = req.user?.userId;
-    const mpin = req.body;
 
     if(!userId){
         throw new AppError("Unauthorized", 401);
     };
 
-    await setUserMpin({userId, mpin});
+    await setUserMpin({userId, ...input });
     res.status(200).json({
         success : true,
         message : "MPIN set successfully",
