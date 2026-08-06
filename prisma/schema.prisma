@@ -16,6 +16,7 @@ enum TransactionType {
   DEPOSIT
   TRANSFER
   UTIlity_PAYMENT
+  WITHDRAW
 }
 
 enum TransactionStatus {
@@ -71,7 +72,7 @@ model Transaction {
   amount Decimal
   type TransactionType
   status TransactionStatus
-  utilityType UtilityType
+  utilityType UtilityType?
   remarks String?
 
   senderAccountId String?
