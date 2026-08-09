@@ -1,6 +1,9 @@
 import{ prisma } from "../../config/prisma.js";
+import { Prisma } from "../../generated/prisma/client.js";
 import { AppError } from "../../utils/error.js";
-import { verifyUserMpin } from "../services/verify-mpin.serivce.js";
+import { generateReferenceNumber } from "../../utils/referenceNumber.js";
+import { checkDailyTransactionLimit } from "../services/limit.service.js";
+import { verifyUserMpin } from "../services/verify-mpin.service.js";
 import { TransferInput } from "./transaction.schema.js";
 
 type TransferServiceInput = TransferInput & {
@@ -9,7 +12,7 @@ type TransferServiceInput = TransferInput & {
 
 export const transferAmount = async( input : TransferServiceInput)=> {
 
-    const {identifierType, identifier, amount, remarks, mpin, userId} = input;
+    const { identifierType, identifier, amount, remarks, mpin, userId } = input;
 
     await verifyUserMpin(userId, mpin);
 
@@ -32,8 +35,12 @@ export const transferAmount = async( input : TransferServiceInput)=> {
         throw new AppError("Sender account not found", 404);
     }
 
+    const senderAccountId = sender.account.id;
+
     let targetUserId : string | null = null;
     let targetAccountId : string | null = null;
+    let targetName : string | null = null;
+    let targetAccountNumber : string | null = null;
 
     if(identifierType === "USERNAME"){
 
@@ -41,9 +48,11 @@ export const transferAmount = async( input : TransferServiceInput)=> {
             where : { username :  identifier},
             select :{ 
                 id : true, 
+                name : true,
                 account : {
                     select : {
-                        id : true
+                        id : true,
+                        accountNumber : true,
                     },
                 },
             },
@@ -52,15 +61,19 @@ export const transferAmount = async( input : TransferServiceInput)=> {
         if(receiver){
             targetUserId = receiver.id;
             targetAccountId = receiver.account?.id || null;
+            targetAccountNumber = receiver.account?.accountNumber || null;
+            targetName = receiver.name || null;
         }
     } else if (identifierType === "PHONE"){
         const receiver = await prisma.user.findUnique({
             where : { phone : identifier},
             select : {
                 id : true,
+                name : true,
                 account : {
                     select : {
-                        id : true
+                        id : true,
+                        accountNumber : true,
                     },
                 },
             },
@@ -69,19 +82,27 @@ export const transferAmount = async( input : TransferServiceInput)=> {
         if(receiver){
             targetUserId = receiver.id;
             targetAccountId = receiver.account?.id || null;
+            targetAccountNumber = receiver.account?.accountNumber || null;
+            targetName = receiver.name || null;
         }
     } else if (identifierType === "ACCOUNT_NUMBER"){
         const receiverAccount = await prisma.account.findUnique({
             where : { accountNumber : identifier},
             select : {
                 id : true, 
-                userId : true
+                userId : true,
+                accountNumber : true,
+                user : {
+                    select : { name : true },
+                }
             }
         });
 
         if(receiverAccount){
             targetUserId = receiverAccount.userId;
             targetAccountId = receiverAccount.id;
+            targetAccountNumber = receiverAccount.accountNumber;
+            targetName = receiverAccount.user.name;
         }
     }
 
@@ -96,6 +117,70 @@ export const transferAmount = async( input : TransferServiceInput)=> {
     if(targetAccountId === sender.account.id){
         throw new AppError("You cannot transfer money to yourself", 400)
     }
-    
 
-}
+    await checkDailyTransactionLimit(sender.account.id, amount);
+    const referenceNumber = generateReferenceNumber();
+
+    const transactionRecord = await prisma.$transaction(
+        async (tx) => {
+
+            const currentSenderAccount = await tx.account.findUnique({
+                where : { id : senderAccountId },
+                select : { balance : true }
+            });
+
+             const currentBalance = currentSenderAccount?.balance?.toNumber() ?? 0;
+
+            if(currentBalance < amount){
+            throw new AppError("Insufficient acount balance", 400);
+            }
+
+            await tx.account.update({
+                where : { id : senderAccountId},
+                data : {
+                    balance : { decrement : amount },
+                }
+            });
+
+            await tx.account.update({
+                where : { id : targetAccountId },
+                data : {
+                    balance : { increment : amount }
+                },
+            });
+
+            return await tx.transaction.create({
+                data : {
+                    reference : referenceNumber,
+                    type : "TRANSFER",
+                    senderAccount : {  connect :  { id : senderAccountId}},
+                    receiverAccount : { connect : { id : targetAccountId}},
+                    amount : new Prisma.Decimal(amount),
+                    remarks : remarks || "Fund transfer",
+                    status : "SUCCESS",
+                }
+            });
+        });
+
+        return {
+            data  :{
+                transactionId : transactionRecord.id,
+                referenceNumber : transactionRecord.reference,
+
+                sender : {
+                    accountNumber : sender.account.accountNumber,
+                    name : sender.username,
+                },
+
+                receiver : {
+                    accountNumber : targetAccountNumber,
+                    name : targetName,
+                },
+
+                amount : transactionRecord.amount,
+                remarks : transactionRecord.remarks,
+                status : transactionRecord.status,
+                createdAt : transactionRecord.createdAt,
+            },
+        };
+};
