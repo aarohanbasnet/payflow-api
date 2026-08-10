@@ -19,6 +19,9 @@ export const checkDailyTransactionLimit = async(
         where : {
             senderAccountId : senderAccountId,
             status : "SUCCESS",
+            type : {
+                in : ["TRANSFER", "UTILITY_PAYMENT"]
+            },
             createdAt : {
                 gte : startOfDay
             },
@@ -29,6 +32,6 @@ export const checkDailyTransactionLimit = async(
 
     if(totalTransferredToday + amount > maxLimit) {
         const remainingLimit = Math.max(0, maxLimit - totalTransferredToday);
-        throw new AppError(`Daily transaction limit of Rs. ${maxLimit.toLocaleString()}.exceeded. Remaining limit for today : Rs. ${remainingLimit.toLocaleString}`, 400);
+        throw new AppError(`Daily transaction limit of Rs. ${maxLimit.toLocaleString()} exceeded. Remaining limit for today : Rs. ${remainingLimit.toLocaleString()}`, 400);
     }
 }
