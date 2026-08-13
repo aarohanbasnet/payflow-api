@@ -5,7 +5,7 @@ import { AppError } from "../../utils/error.js";
 import { generateReferenceNumber } from "../../utils/referenceNumber.js";
 import { checkDailyTransactionLimit } from "../services/limit.service.js";
 import { verifyUserMpin } from "../services/verify-mpin.service.js";
-import { TransferInput, UtilityInput } from "./transaction.schema.js";
+import { GetTransactionInput, TransferInput, UtilityInput } from "./transaction.schema.js";
 import { maskPhone } from "../../utils/mask.js";
 
 type TransferServiceInput = TransferInput & {
@@ -13,6 +13,10 @@ type TransferServiceInput = TransferInput & {
 }
 
 type UtilityServiceInput = UtilityInput & {
+    userId : string
+}
+
+type GetTransactionServiceInput = GetTransactionInput & {
     userId : string
 }
 
@@ -262,6 +266,7 @@ export const utilityPayment = async ( input : UtilityServiceInput )=> {
                     senderAccount : {
                         connect : { id : initiatorAccountId } },
                     amount : new Prisma.Decimal(amount),
+                    vendor : vendor,
                     remarks : `${utilityType} bill payment to ${vendor}`,
                     status : "SUCCESS"
                 }
@@ -288,3 +293,124 @@ export const utilityPayment = async ( input : UtilityServiceInput )=> {
         }
 
 }
+
+export const getTransaction = async ( input : GetTransactionServiceInput ) =>{
+
+    const {reference, userId} = input;
+    const transactionRecord = await prisma.transaction.findFirst({
+        where : { reference : reference,
+            OR : [
+                { senderAccount : { userId }}, //Filter through relation
+                { receiverAccount : { userId }} 
+                /*Find the transaction whose reference matches AND whose related sender account 
+                belongs to this user OR whose related receiver account belongs to this user.*/
+            ]
+         },
+         select : {
+            id : true,
+            reference : true,
+            amount : true,
+            remarks : true,
+            utilityType : true,
+            status : true,
+            type : true,
+            vendor : true,
+            createdAt : true,
+
+            senderAccount : {
+                select : { 
+                    accountNumber : true,
+                    user : {
+                        select  : { 
+                            name :  true,
+                            username : true,                                   
+                        }
+                    }
+                }
+            },
+
+            receiverAccount : {
+                select : { 
+                    accountNumber : true,
+                    user : {
+                        select  : { 
+                            name :  true,
+                            username : true,                                 
+                        }
+                    }
+                }
+            }
+         },
+
+    });
+
+    if(!transactionRecord ){
+        throw new AppError("Transaction not found", 404)
+    }
+
+    const transactionType = transactionRecord.type;
+
+    const baseData = {
+        transactionId: transactionRecord.id,
+        reference: transactionRecord.reference,
+        type: transactionRecord.type,
+        amount: transactionRecord.amount,
+        status: transactionRecord.status,
+        remarks: transactionRecord.remarks,
+        createdAt: transactionRecord.createdAt
+    };
+
+    if(transactionType == "TRANSFER"){
+        return {
+            data : {
+                 ...baseData,
+
+                 sender : {
+                    name : transactionRecord.senderAccount?.user.name,
+                    username : transactionRecord.senderAccount?.user.username, 
+                    accountNumber : transactionRecord.senderAccount?.accountNumber,
+                 },
+                 receiver : {
+                    name : transactionRecord.receiverAccount?.user.name,
+                    username : transactionRecord.receiverAccount?.user.username,
+                    accountNumber : transactionRecord.receiverAccount?.accountNumber,
+                 },
+            },
+        }
+    }
+    if(transactionType ==="DEPOSIT" || transactionType === "WITHDRAW"){
+        return {
+            data : {
+               transactionId : transactionRecord?.id,
+                 reference : transactionRecord.reference,
+                 type : transactionRecord.type,
+                 amount : transactionRecord.amount,
+                 status : transactionRecord.status,
+                 remarks : transactionRecord.remarks,
+                 createdAt : transactionRecord.createdAt,
+        },
+    }
+    };
+
+    if(transactionType === "UTILITY_PAYMENT"){
+        return {
+            data : {
+                ...baseData,
+                 sender : {
+                    name : transactionRecord.senderAccount?.user.name,
+                    username : transactionRecord.senderAccount?.user.username, 
+                    accountNumber : transactionRecord.senderAccount?.accountNumber,
+                 },
+                 utility : {
+                    type : transactionRecord.utilityType,
+                    vendor : transactionRecord.vendor,
+                 },  
+            },
+        };
+    };
+
+    throw new AppError("Unsupported transaction type", 400);
+
+    };
+
+
