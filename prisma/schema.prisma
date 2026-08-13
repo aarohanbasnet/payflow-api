@@ -73,9 +73,10 @@ model Transaction {
   type TransactionType
   status TransactionStatus
   utilityType UtilityType?
+  vendor String?
   remarks String?
 
-  senderAccountId String?
+  senderAccountId String? 
   senderAccount Account? @relation("Sender",fields: [senderAccountId], references: [id])
   receiverAccountId String?
   receiverAccount Account? @relation("Receiver",fields: [receiverAccountId], references: [id])
