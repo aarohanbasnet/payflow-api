@@ -28,6 +28,8 @@ const utilityVendors = {
     TV : ["DISHHOME"]
 }
 
+const TRANSACTION_HISTORY_DAYS = 7;
+
 export const transferAmount = async( input : TransferServiceInput)=> {
 
     const { identifierType, identifier, amount, remarks, mpin, userId } = input;
@@ -410,6 +412,94 @@ export const getTransaction = async ( input : GetTransactionServiceInput ) =>{
     };
 
     throw new AppError("Unsupported transaction type", 400);
+
+    };
+
+
+    export const transactionHistory = async( userId : string)=> {
+
+        const daysAgo = new Date();
+
+        daysAgo.setDate(
+            daysAgo.getDate() - TRANSACTION_HISTORY_DAYS
+        );
+
+        const transactionRecord = await prisma.transaction.findMany({ //returns array 
+            where : {
+                createdAt : {
+                    gte : daysAgo
+                },
+                OR : [
+                    { senderAccount : { userId}},
+                    { receiverAccount : {userId}},
+                ]},
+                orderBy : {
+                    createdAt : "desc"
+                },
+                select : {
+                    reference : true,
+                    type : true,
+                    amount : true,
+                    createdAt : true,
+                    status : true,
+                    senderAccount : {
+                        select : {
+                            userId : true,
+                            user : {
+                                select : {
+                                    name : true
+                                }
+                            }
+                        }
+                    },
+                    receiverAccount : {
+                        select : {
+                            userId : true,
+                            user : {
+                                select : {
+                                    name : true
+                                }
+                            }
+                        }
+                    },
+
+                    vendor : true,
+                    
+                },
+        });
+
+
+        if(transactionRecord.length === 0){
+            throw new AppError("No transactions found", 404);
+        }
+
+        const data = transactionRecord.map(transaction => {
+            let counterparty = null;
+
+            if(transaction.type === "UTILITY_PAYMENT"){
+                counterparty = transaction.vendor;
+            }
+
+
+            if(transaction.type === "TRANSFER"){
+                counterparty = transaction.senderAccount?.userId === userId ? 
+                transaction.receiverAccount?.user.name ?? null : transaction.senderAccount?.user.name ?? null;
+            }
+
+            return {
+                reference : transaction.reference,
+                type : transaction.type,
+                amount : transaction.amount,
+                counterparty,
+                status : transaction.status,
+                createdAt : transaction.createdAt,
+            };  
+        });
+
+            return {
+                data
+            };
+
 
     };
 
