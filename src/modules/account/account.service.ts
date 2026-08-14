@@ -4,7 +4,7 @@
 import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../utils/error.js";
 import { generateReferenceNumber } from "../../utils/referenceNumber.js";
-import { verifyUserMpin } from "../services/verify-mpin.serivce.js";
+import { verifyUserMpin } from "../services/verify-mpin.service.js";
 import { DepositInput, WithdrawInput } from "./account.schema.js";
 
  type DepositServiceInput = DepositInput & {

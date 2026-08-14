@@ -9,10 +9,10 @@ import { loginUserSchema, logoutSchema, registerUserSchema, verifyOtpSchema, ref
 
 const router = Router();
 
-router.post("/register", validate(registerUserSchema), registerController);
-router.post("/login", validate(loginUserSchema), loginController);
+router.post("/register", validate(registerUserSchema, "body"), registerController);
+router.post("/login", validate(loginUserSchema, "body"), loginController);
 router.post("/logout", /*validate(logoutSchema),*/ logoutController);
-router.post("/verify-otp",validate(verifyOtpSchema), verifyOtpController);
-router.post("/refresh", validate(refreshTokenSchema), refreshTokenController);
+router.post("/verify-otp",validate(verifyOtpSchema, "body"), verifyOtpController);
+router.post("/refresh", validate(refreshTokenSchema, "body"), refreshTokenController);
 
 export default router;

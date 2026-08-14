@@ -6,8 +6,8 @@ import { depositInputSchema, withdrawInputSchema } from "./account.schema.js";
 
 const router = Router();
 
-router.post("/deposit", isLoggedin, validate(depositInputSchema), depositController);
-router.post("/withdraw", isLoggedin, validate(withdrawInputSchema), withdrawController);
+router.post("/deposit", isLoggedin, validate(depositInputSchema, "body"), depositController);
+router.post("/withdraw", isLoggedin, validate(withdrawInputSchema, "body"), withdrawController);
 router.get("/", isLoggedin,  getAccountController);
 
 export default router;
