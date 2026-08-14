@@ -5,7 +5,7 @@ import { setUserMpinController, userProfileController } from "./user.controller.
 import { mpinSetupSchema } from "./user.schema.js";
 const router = Router();
 
-router.post("/me", isLoggedin, userProfileController);
-router.post("/me/mpin", isLoggedin, validate(mpinSetupSchema), setUserMpinController);
+router.get("/me", isLoggedin, userProfileController);
+router.post("/me/mpin", isLoggedin, validate(mpinSetupSchema, "body"), setUserMpinController);
 
 export default router;
