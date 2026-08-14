@@ -3,6 +3,7 @@ import { customRequest } from "../../middlewares/auth.middleware.js";
 import { GetTransactionInput, TransferInput, UtilityInput } from "./transaction.schema.js";
 import { getTransaction, transferAmount, utilityPayment } from "./transaction.service.js";
 import { AppError } from "../../utils/error.js";
+import { transactionHistory } from "./transaction.service.js"
 import { success } from "zod";
 
 export const transferAmountController = async(
@@ -46,7 +47,7 @@ export const utilityPaymentController = async(
         req : customRequest,
         res : Response ) => {
             const input = req.params as GetTransactionInput;
-            const userId = req.user?.userId
+            const userId = req.user?.userId;
 
             if(!userId){
                 throw new AppError("Unauthorized", 401);
@@ -58,5 +59,21 @@ export const utilityPaymentController = async(
                 message : "Transaction retrived successfully",
                 data : result.data,
         });
+    };
 
-        }
+    export const transactionHistoryController = async(
+        req : customRequest,
+        res : Response ) => {
+            const userId = req.user?.userId;
+
+            if(!userId){
+                throw new AppError("Unauthorized", 401);
+            }
+
+            const result = await transactionHistory( userId );
+            res.status(200).json({
+                success : true,
+                message  : "Transaction history fetched successfully",
+                data : result.data,
+            });
+        };
