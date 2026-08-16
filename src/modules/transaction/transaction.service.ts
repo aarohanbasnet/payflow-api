@@ -7,6 +7,7 @@ import { checkDailyTransactionLimit } from "../services/limit.service.js";
 import { verifyUserMpin } from "../services/verify-mpin.service.js";
 import { GetTransactionInput, TransferInput, UtilityInput } from "./transaction.schema.js";
 import { maskPhone } from "../../utils/mask.js";
+import { sendTransactionAlertEmail } from "../services/email/email.service.js";
 
 type TransferServiceInput = TransferInput & {
     userId : string
@@ -39,8 +40,10 @@ export const transferAmount = async( input : TransferServiceInput)=> {
     const sender = await prisma.user.findUnique({
         where : { id : userId },
         select : {
+            name : true,
             phone : true,
             username : true,
+            email : true,
             account : {
                 select : {
                     id : true,
@@ -56,11 +59,13 @@ export const transferAmount = async( input : TransferServiceInput)=> {
     }
 
     const senderAccountId = sender.account.id;
+    const senderEmailAddress = sender.email;
 
     let targetUserId : string | null = null;
     let targetAccountId : string | null = null;
     let targetName : string | null = null;
     let targetAccountNumber : string | null = null;
+    let targetEmailAddress : string | null = null;
 
     if(identifierType === "USERNAME"){
 
@@ -69,6 +74,7 @@ export const transferAmount = async( input : TransferServiceInput)=> {
             select :{ 
                 id : true, 
                 name : true,
+                email : true,
                 account : {
                     select : {
                         id : true,
@@ -83,6 +89,7 @@ export const transferAmount = async( input : TransferServiceInput)=> {
             targetAccountId = receiver.account?.id || null;
             targetAccountNumber = receiver.account?.accountNumber || null;
             targetName = receiver.name || null;
+            targetEmailAddress = receiver.email || null;
         }
     } else if (identifierType === "PHONE"){
         const receiver = await prisma.user.findUnique({
@@ -90,6 +97,7 @@ export const transferAmount = async( input : TransferServiceInput)=> {
             select : {
                 id : true,
                 name : true,
+                email : true,
                 account : {
                     select : {
                         id : true,
@@ -104,7 +112,9 @@ export const transferAmount = async( input : TransferServiceInput)=> {
             targetAccountId = receiver.account?.id || null;
             targetAccountNumber = receiver.account?.accountNumber || null;
             targetName = receiver.name || null;
+            targetEmailAddress = receiver.email || null;
         }
+
     } else if (identifierType === "ACCOUNT_NUMBER"){
         const receiverAccount = await prisma.account.findUnique({
             where : { accountNumber : identifier},
@@ -113,7 +123,7 @@ export const transferAmount = async( input : TransferServiceInput)=> {
                 userId : true,
                 accountNumber : true,
                 user : {
-                    select : { name : true },
+                    select : { name : true, email : true },
                 }
             }
         });
@@ -123,6 +133,7 @@ export const transferAmount = async( input : TransferServiceInput)=> {
             targetAccountId = receiverAccount.id;
             targetAccountNumber = receiverAccount.accountNumber;
             targetName = receiverAccount.user.name;
+            targetEmailAddress = receiverAccount.user.email;
         }
     }
 
@@ -181,6 +192,30 @@ export const transferAmount = async( input : TransferServiceInput)=> {
                 }
             });
         });
+            //Email to sender
+            if(sender.email){
+                await sendTransactionAlertEmail({
+                    name : sender.name || sender.username || "Customer",
+                    to : "delivered@resend.dev",
+                    accountNumber : sender.account.accountNumber,
+                    amount : amount,
+                    reference : transactionRecord.reference
+                });
+            }
+
+            //Email to receiver
+            if(targetEmailAddress && targetAccountNumber){
+                await sendTransactionAlertEmail({
+                    name : targetName || "Customer",
+                    to : "delivered@resend.dev",
+                    accountNumber : targetAccountNumber,
+                    amount : amount,
+                    reference : transactionRecord.reference
+                });
+            }
+
+
+
 
         return {
             data  :{
@@ -274,6 +309,14 @@ export const utilityPayment = async ( input : UtilityServiceInput )=> {
                 }
             });
         });
+
+        await sendTransactionAlertEmail({
+            to : "delivered@resend.dev",
+            name : initiator.name ,
+            accountNumber : initiator.account.accountNumber,
+            reference : transactionRecord.reference,
+            amount : (transactionRecord.amount).toNumber(),
+        })
 
         return {
             data : {
@@ -499,7 +542,6 @@ export const getTransaction = async ( input : GetTransactionServiceInput ) =>{
             return {
                 data
             };
-
 
     };
 
