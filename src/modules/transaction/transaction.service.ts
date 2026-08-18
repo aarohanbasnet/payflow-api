@@ -1,6 +1,5 @@
-import { tr } from "zod/locales";
 import{ prisma } from "../../config/prisma.js";
-import { Prisma, UtilityType } from "../../generated/prisma/client.js";
+import { Prisma } from "../../generated/prisma/client.js";
 import { AppError } from "../../utils/error.js";
 import { generateReferenceNumber } from "../../utils/referenceNumber.js";
 import { checkDailyTransactionLimit } from "../services/limit.service.js";

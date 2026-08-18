@@ -3,8 +3,7 @@ import { customRequest } from "../../middlewares/auth.middleware.js";
 import { GetTransactionInput, TransferInput, UtilityInput } from "./transaction.schema.js";
 import { getTransaction, transferAmount, utilityPayment } from "./transaction.service.js";
 import { AppError } from "../../utils/error.js";
-import { transactionHistory } from "./transaction.service.js"
-import { success } from "zod";
+import { transactionHistory } from "./transaction.service.js";
 
 export const transferAmountController = async(
     req : customRequest,
