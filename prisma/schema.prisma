@@ -15,7 +15,8 @@ datasource db {
 enum TransactionType {
   DEPOSIT
   TRANSFER
-  UTIlity_PAYMENT
+  UTILITY_PAYMENT
+  WITHDRAW
 }
 
 enum TransactionStatus {
@@ -71,10 +72,11 @@ model Transaction {
   amount Decimal
   type TransactionType
   status TransactionStatus
-  utilityType UtilityType
+  utilityType UtilityType?
+  vendor String?
   remarks String?
 
-  senderAccountId String?
+  senderAccountId String? 
   senderAccount Account? @relation("Sender",fields: [senderAccountId], references: [id])
   receiverAccountId String?
   receiverAccount Account? @relation("Receiver",fields: [receiverAccountId], references: [id])

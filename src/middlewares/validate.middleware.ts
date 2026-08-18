@@ -2,9 +2,15 @@ import {Request, Response, NextFunction} from "express";
 import { z } from "zod";
 import { AppError } from "../utils/error.js";
 
-export const validate = (schema : z.ZodSchema)=>
+type ValidationTarget = "body" | "params" | "query";
+
+export const validate = (
+    schema : z.ZodSchema,
+    target : ValidationTarget
+ ) =>
      (req : Request, res : Response, next : NextFunction):void =>{
-        const result = schema.safeParse(req.body);
+        const data = req[target];
+        const result = schema.safeParse(data);
 
         if(!result.success){
             const message = result.error.issues
@@ -13,6 +19,6 @@ export const validate = (schema : z.ZodSchema)=>
             return next(new AppError(message, 400));
         }
 
-        req.body = result.data;
+        req[target] = result.data;
         next();
      }

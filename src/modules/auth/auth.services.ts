@@ -8,6 +8,7 @@ import { generateUsername } from "../../utils/username.js";
 import { generateOTP, getOTPExpiry, isOTPExpired } from "../../utils/otp.js";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../../utils/jwt.js";
 import { RefreshTokenInput, LoginInput, LogoutInput, VerifyOtpInput, RegisterInput } from "./auth.schema.js";
+import { sendOtpEmail } from "../services/email/email.service.js";
 
 export const registerUser = async  ( input: RegisterInput) =>{
     const existingUser = await prisma.user.findFirst({
@@ -50,6 +51,12 @@ export const registerUser = async  ( input: RegisterInput) =>{
             expiresAt : getOTPExpiry(),
             userId : user.id,
         },
+    });
+
+    await sendOtpEmail({
+        to : "delivered@resend.dev",
+        name : user.name,
+        otpCode,
     });
 
     return {

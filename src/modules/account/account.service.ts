@@ -1,8 +1,11 @@
 //TODO (Transactions)
 //wrap deposit and withdraw in prisma.transaction and create a transaction record
+//Later create a helper function since withdraw and deposit has same repeated logic
 import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../utils/error.js";
-import { verifyUserMpin } from "../services/verify-mpin.serivce.js";
+import { generateReferenceNumber } from "../../utils/referenceNumber.js";
+import { sendTransactionAlertEmail } from "../services/email/email.service.js";
+import { verifyUserMpin } from "../services/verify-mpin.service.js";
 import { DepositInput, WithdrawInput } from "./account.schema.js";
 
  type DepositServiceInput = DepositInput & {
@@ -18,33 +21,83 @@ import { DepositInput, WithdrawInput } from "./account.schema.js";
 
     const account = await prisma.account.findUnique({
         where : { userId },
+        select : {
+            balance : true,
+            accountNumber : true,
+            id : true,
+            user : {
+                select : {
+                    name : true,
+                    email : true,
+                },
+            },
+    
+        },
     });
 
     if(!account){
         throw new AppError("Account not found", 404);
     };
 
-    const newBalance = account.balance.toNumber() + amount;
+    const email = "delivered@resend.dev";
 
-    if(newBalance > 100000){
-        throw new AppError("Wallet balance limit exceeded",400)
-    }
+    const referenceNumber = generateReferenceNumber();
 
-    const updatedAccount = await prisma.account.update({
-        where : { userId },
-        data : {
-            balance :  {
-                increment : amount,
-            },
-        },
+    const result = await prisma.$transaction(
+        async (tx) => {
 
-        select : {
-            balance : true,
-        },
+            const currentAccount = await tx.account.findUnique({
+                where : { id : account.id },
+                select : {balance : true},
+            });
+
+            const currentBalace = currentAccount?.balance.toNumber() ?? 0;
+
+            if(currentBalace + amount > 100000) {
+                throw new AppError("Wallet balance limit exceeded", 400);
+            }
+
+            
+            const updatedAccount = await tx.account.update({
+                where : { userId },
+                data : {
+                    balance : {
+                        increment : amount,
+                    },
+                },
+                select : {
+                    balance : true,
+                },
+            });
+
+            const  transactionRecord = await tx.transaction.create({
+                data : {
+                    reference : referenceNumber,
+                    amount : amount,
+                    type : "DEPOSIT",
+                    status : "SUCCESS",
+                    receiverAccountId : account.id
+
+                }
+            })
+
+            return {updatedAccount, transactionRecord} ;
+        }
+    );
+
+    (async ()=>{
+        await sendTransactionAlertEmail({
+        name : account.user.name,
+        to : email,
+        amount,
+        reference : result.transactionRecord.reference,
+        accountNumber : account.accountNumber,
     });
+    })(); //IIFE
 
     return {
-        balance : updatedAccount.balance
+        
+        balance : result.updatedAccount.balance,
     };
  };
 
@@ -57,33 +110,67 @@ import { DepositInput, WithdrawInput } from "./account.schema.js";
     
     const account = await prisma.account.findUnique({
         where : { userId },
+        select : {
+            accountNumber : true,
+            id : true,
+            user : {
+                select : {
+                    name : true,
+                    email : true, 
+                },
+            },
+        },
     });
 
     if(!account){
         throw new AppError("Account not found", 404);
     };
 
-    const currentBalance = account.balance.toNumber();
 
-    if(amount > currentBalance){
-        throw new AppError("Insufficient balance",400)
-    }
+    const referenceNumber = generateReferenceNumber();
 
-    const updatedAccount = await prisma.account.update({
-        where : { userId },
-        data : {
-            balance :  {
-                decrement : amount,
-            },
-        },
+    const result = await prisma.$transaction(
+        async(tx) => {
+            const updatedAccount = await tx.account.update({
+                where : { userId},
+                data : {
+                    balance : {
+                        decrement : amount,
+                    },
+                },
 
-        select : {
-            balance : true,
-        },
+                select : {
+                    balance : true,
+                    accountNumber : true,
+                },
+            });
+
+            const transactionRecord = await tx.transaction.create({
+                data : {
+                     reference : referenceNumber,
+                    amount : amount,
+                    type : "WITHDRAW",
+                    status : "SUCCESS",
+                    senderAccountId : account.id
+                },
+            });
+
+            return {updatedAccount, transactionRecord };
+        }
+    );
+
+    (async ()=>{
+        await sendTransactionAlertEmail({
+        name : account.user.name,
+        to : account.user.email,
+        amount,
+        reference : result.transactionRecord.reference,
+        accountNumber : account.accountNumber,
     });
+    })();
 
     return {
-        balance : updatedAccount.balance
+        balance : result.updatedAccount.balance,
     };
  };
 
