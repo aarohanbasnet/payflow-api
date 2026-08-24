@@ -1,7 +1,8 @@
 import { customRequest } from "../../middlewares/auth.middleware.js";
-import {Response} from "express";
+import {application, Response} from "express";
 import { AppError } from "../../utils/error.js";
 import { getInvoceData } from "./invoice.service.js";
+import { generateInvoicePDF } from "./pdf/invoice.pdf.js";
 
 
 export const generateInvoiceController = async (
@@ -22,11 +23,14 @@ export const generateInvoiceController = async (
         throw new AppError("Transaction reference is required", 200);
     }
 
-    const result = await getInvoceData({ reference, userId});
+    const invoiceData = await getInvoceData({ reference, userId});
+    const pdfBuffer = await generateInvoicePDF(invoiceData);
 
-    res.status(200).json({
-        success : true,
-        message : "Invoice generated successfully",
-        data : result
-    })
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+        "Content-Dispostion",
+        `attachment; filename='invoice-${reference}.pdf`
+    );
+
+    res.status(200).send(pdfBuffer);
 }
