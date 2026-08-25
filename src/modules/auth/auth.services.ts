@@ -81,9 +81,33 @@ export const verifyOtp = async ( input : VerifyOtpInput ) =>{
     if(isOTPExpired(otp.expiresAt)) throw new AppError("OTP has expired", 410);
     // if(otp.code !== code) throw new AppError("Invalid OTP", 400);
 
+    if(otp.attempts >=3 ){
+        throw new AppError("Maximum OTP attempts exceeded, request a new OTP", 429);
+    }
     const isValid = await compare(code, otp.code);
+
     if(!isValid){
-        throw new AppError("Invalid OTP", 400)
+
+        const updatedAttempts = otp.attempts + 1;
+        await prisma.oTP.update({
+            where : { id : otp.id}, 
+
+            data : {attempts : {
+                increment : 1
+            },
+            ...(updatedAttempts >= 3 && {  //If the new attempt count is 3 or more, add isUsed: true to the update.
+                isUsed : true
+            }) 
+        },
+        });
+
+        if(updatedAttempts >= 3){
+            throw new AppError("Maximum OTP attempts exceeded, requst a new OTP", 429);
+        }
+
+        throw new AppError(`Invalid OTP. ${3-updatedAttempts}attempts remaining`, 400);
+
+        
     }
 
     await prisma.$transaction([
