@@ -1,0 +1,549 @@
+openapi: 3.0.3
+info:
+  title: Payflow API
+  description: >
+    Backend payment system supporting authentication, wallet management,
+    peer-to-peer transfers, utility bill payments, and invoice generation.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Local development server
+
+tags:
+  - name: Auth
+    description: Registration, login, and token management
+  - name: Users
+    description: User profile and MPIN management
+  - name: Account
+    description: Wallet balance, deposits, and withdrawals
+  - name: Transactions
+    description: Peer-to-peer transfers, utility payments, and history
+  - name: Invoice
+    description: PDF invoice generation for transactions
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        Access token returned from /auth/login or /auth/refresh.
+        Send as "Authorization: Bearer <accessToken>".
+
+  schemas:
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required: [name, email, phone, password]
+      properties:
+        name:
+          type: string
+          minLength: 4
+          maxLength: 50
+          example: Aarohan Basnet
+        email:
+          type: string
+          format: email
+          example: aarohan@example.com
+        phone:
+          type: string
+          pattern: '^\d{10}$'
+          example: "9812345678"
+        password:
+          type: string
+          minLength: 8
+          format: password
+          example: superSecret123
+
+    LoginRequest:
+      type: object
+      required: [identifier]
+      description: Provide either password or mpin, not both.
+      properties:
+        identifier:
+          type: string
+          description: Username or phone number
+          example: aarohan99
+        password:
+          type: string
+          format: password
+        mpin:
+          type: string
+          pattern: '^\d{4}$'
+          example: "1234"
+
+    VerifyOtpRequest:
+      type: object
+      required: [userId, code]
+      properties:
+        userId:
+          type: string
+        code:
+          type: string
+          pattern: '^\d{6}$'
+          example: "482913"
+
+    RefreshTokenRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: Refresh token (normally sent via httpOnly cookie; included here for manual testing)
+
+    MpinSetupRequest:
+      type: object
+      required: [mpin]
+      properties:
+        mpin:
+          type: string
+          pattern: '^\d{4}$'
+          example: "1234"
+
+    DepositRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: number
+          minimum: 0.01
+          maximum: 100000
+          example: 5000
+
+    WithdrawRequest:
+      type: object
+      required: [amount, mpin]
+      properties:
+        amount:
+          type: number
+          minimum: 100
+          maximum: 100000
+          example: 1000
+        mpin:
+          type: string
+          pattern: '^\d{4}$'
+          example: "1234"
+
+    TransferRequest:
+      type: object
+      required: [identifierType, identifier, amount, mpin]
+      properties:
+        identifierType:
+          type: string
+          enum: [USERNAME, PHONE, ACCOUNT_NUMBER]
+        identifier:
+          type: string
+          example: "9812345678"
+        amount:
+          type: number
+          minimum: 100
+          maximum: 25000
+          example: 500
+        mpin:
+          type: string
+          pattern: '^\d{4}$'
+          example: "1234"
+        remarks:
+          type: string
+          maxLength: 100
+          example: "Lunch money"
+
+    UtilityPaymentRequest:
+      type: object
+      required: [utilityType, vendor, amount, mpin]
+      properties:
+        utilityType:
+          type: string
+          enum: [ELECTRICITY, MOBILE_TOPUP, WATER, INTERNET, TV]
+        vendor:
+          type: string
+          enum: [NEA, WORLDLINK, VIANET, SUBISU, NTC, NCELL, DISHHOME, KUKL]
+        amount:
+          type: number
+          minimum: 100
+          maximum: 25000
+          example: 1500
+        mpin:
+          type: string
+          pattern: '^\d{4}$'
+          example: "1234"
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in with password or MPIN
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful, sets refreshToken httpOnly cookie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Log out and invalidate the refresh token
+      security: []
+      responses:
+        '200':
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Refresh token missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/verify-otp:
+    post:
+      tags: [Auth]
+      summary: Verify the OTP sent during registration
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOtpRequest'
+      responses:
+        '200':
+          description: OTP verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid or expired OTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Exchange a refresh token for a new access token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Refresh token missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get the logged-in user's profile
+      responses:
+        '200':
+          description: Profile fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/me/mpin:
+    post:
+      tags: [Users]
+      summary: Set the logged-in user's MPIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MpinSetupRequest'
+      responses:
+        '200':
+          description: MPIN set successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /account:
+    get:
+      tags: [Account]
+      summary: Get the logged-in user's account/wallet details
+      responses:
+        '200':
+          description: Account fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /account/deposit:
+    post:
+      tags: [Account]
+      summary: Deposit funds into the logged-in user's wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepositRequest'
+      responses:
+        '200':
+          description: Deposit successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /account/withdraw:
+    post:
+      tags: [Account]
+      summary: Withdraw funds from the logged-in user's wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithdrawRequest'
+      responses:
+        '200':
+          description: Withdrawal successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions/transfer:
+    post:
+      tags: [Transactions]
+      summary: Transfer funds to another user (P2P)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+      responses:
+        '201':
+          description: Fund transfer successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions/utility-payment:
+    post:
+      tags: [Transactions]
+      summary: Pay a utility bill
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UtilityPaymentRequest'
+      responses:
+        '201':
+          description: Payment successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions/history:
+    get:
+      tags: [Transactions]
+      summary: Get the logged-in user's transaction history
+      responses:
+        '200':
+          description: Transaction history fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions/{reference}:
+    get:
+      tags: [Transactions]
+      summary: Get a single transaction by its reference
+      parameters:
+        - name: reference
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Transaction reference code
+      responses:
+        '200':
+          description: Transaction retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions/invoice/{reference}:
+    get:
+      tags: [Invoice]
+      summary: Generate and download a PDF invoice for a transaction
+      parameters:
+        - name: reference
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Transaction reference code
+      responses:
+        '200':
+          description: PDF invoice
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
