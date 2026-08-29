@@ -28,8 +28,8 @@ export const generateInvoiceController = async (
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
-        "Content-Dispostion",
-        `attachment; filename='invoice-${reference}.pdf`
+        "Content-Disposition",
+        `attachment; filename="invoice-${reference}.pdf"`
     );
 
     res.status(200).send(pdfBuffer);
