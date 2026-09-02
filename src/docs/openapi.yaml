@@ -76,9 +76,16 @@ components:
           example: superSecret123
 
     LoginRequest:
+      description: >
+        Log in with an identifier plus either a password or an MPIN.
+        Exactly one of the two must be provided — not both, not neither.
+      oneOf:
+        - $ref: '#/components/schemas/LoginWithPassword'
+        - $ref: '#/components/schemas/LoginWithMpin'
+
+    LoginWithPassword:
       type: object
-      required: [identifier]
-      description: Provide either password or mpin, not both.
+      required: [identifier, password]
       properties:
         identifier:
           type: string
@@ -87,6 +94,16 @@ components:
         password:
           type: string
           format: password
+          example: superSecret123
+
+    LoginWithMpin:
+      type: object
+      required: [identifier, mpin]
+      properties:
+        identifier:
+          type: string
+          description: Username or phone number
+          example: aarohan99
         mpin:
           type: string
           pattern: '^\d{4}$'
@@ -151,8 +168,13 @@ components:
         identifierType:
           type: string
           enum: [USERNAME, PHONE, ACCOUNT_NUMBER]
+          example: PHONE
+          description: Which kind of value 'identifier' holds
         identifier:
           type: string
+          description: >
+            The recipient's identifier — a username, phone number, or
+            account number, matching whatever is set in identifierType.
           example: "9812345678"
         amount:
           type: number
