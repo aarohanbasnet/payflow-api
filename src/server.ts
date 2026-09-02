@@ -1,5 +1,7 @@
 import express, {Application, Request, Response } from "express";
 import cookieParser from "cookie-parser";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./docs/swagger.js";
 import authRoutes from "../src/modules/auth/auth.route.js";
 import userRoutes from "../src/modules/user/user.routes.js"
 import { errorHandler } from "./middlewares/errorHandler.js";
@@ -16,6 +18,8 @@ const app : Application= express();
 app.use(express.json());
 app.use(express.urlencoded({extended : true}));
 app.use(cookieParser());
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);

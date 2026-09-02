@@ -223,7 +223,7 @@ export const transferAmount = async( input : TransferServiceInput)=> {
 
                 sender : {
                     accountNumber : sender.account.accountNumber,
-                    name : sender.username,
+                    name : sender.name,
                 },
 
                 receiver : {

@@ -7,7 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "cross-env NODE_ENV=development tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && mkdir -p dist/docs && cp src/docs/openapi.yaml dsit/docs/openapi.yaml",
     "start": "node dist/index.js"
   },
   "repository": {
@@ -28,19 +28,23 @@
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "js-yaml": "^5.4.0",
     "jsonwebtoken": "^9.0.3",
     "pdfkit": "^0.20.1",
     "pg": "^8.22.0",
     "resend": "^6.20.0",
+    "swagger-ui-express": "^5.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
+    "@types/js-yaml": "^4.0.9",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.1.1",
     "@types/pdfkit": "^0.17.6",
+    "@types/swagger-ui-express": "^4.1.8",
     "cross-env": "^10.1.0",
     "prisma": "^7.8.0",
     "tsx": "^4.23.0",
