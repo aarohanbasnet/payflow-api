@@ -39,7 +39,7 @@ import { DepositInput, WithdrawInput } from "./account.schema.js";
         throw new AppError("Account not found", 404);
     };
 
-    const email = "delivered@resend.dev";
+    const email = account.user.email;
 
     const referenceNumber = generateReferenceNumber();
 

@@ -54,7 +54,7 @@ export const registerUser = async  ( input: RegisterInput) =>{
     });
 
     await sendOtpEmail({
-        to : "delivered@resend.dev",
+        to : user.email,
         name : user.name,
         otpCode,
     });
