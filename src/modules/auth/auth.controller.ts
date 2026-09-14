@@ -1,9 +1,9 @@
 import { Response } from "express";
-import { loginUser, logoutUser, refreshToken, registerUser, verifyOtp } from "./auth.services.js";
+import { loginUser, logoutUser, refreshToken, registerUser, resendOtp, verifyOtp } from "./auth.services.js";
 import { customRequest } from "../../middlewares/auth.middleware.js";
 import { AppError } from "../../utils/error.js";
 import { env } from "../../config/env.js";
-import { RefreshTokenInput, RegisterInput, LoginInput, LogoutInput, VerifyOtpInput } from "./auth.schema.js";
+import { RefreshTokenInput, RegisterInput, LoginInput, LogoutInput, VerifyOtpInput, ResendOtpInput } from "./auth.schema.js";
 
 export const registerController =  async (
     req : customRequest,
@@ -113,4 +113,20 @@ const input = req.body as VerifyOtpInput;
         result : result
     },
  });
+};
+
+export const resendOtpController = async (
+    req : customRequest,
+    res : Response,
+)=>{
+    const input = req.body as ResendOtpInput;
+    const result = await resendOtp(input);
+
+    return res.status(200).json({
+        success : true,
+        message : result.message,
+        data : {
+            ...( result.otp && { otp : result.otp}),
+        }
+    });
 };

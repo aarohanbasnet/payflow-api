@@ -195,7 +195,7 @@ export const transferAmount = async( input : TransferServiceInput)=> {
             if(sender.email){
                 await sendTransactionAlertEmail({
                     name : sender.name || sender.username || "Customer",
-                    to : "delivered@resend.dev",
+                    to : senderEmailAddress,
                     accountNumber : sender.account.accountNumber,
                     amount : amount,
                     reference : transactionRecord.reference
@@ -206,7 +206,7 @@ export const transferAmount = async( input : TransferServiceInput)=> {
             if(targetEmailAddress && targetAccountNumber){
                 await sendTransactionAlertEmail({
                     name : targetName || "Customer",
-                    to : "delivered@resend.dev",
+                    to : targetEmailAddress,
                     accountNumber : targetAccountNumber,
                     amount : amount,
                     reference : transactionRecord.reference
@@ -249,6 +249,7 @@ export const utilityPayment = async ( input : UtilityServiceInput )=> {
         select : {
             name : true,
             phone : true,
+            email :  true,
             account : {
                 select : {
                     id : true,
@@ -310,7 +311,7 @@ export const utilityPayment = async ( input : UtilityServiceInput )=> {
         });
 
         await sendTransactionAlertEmail({
-            to : "delivered@resend.dev",
+            to : initiator.email,
             name : initiator.name ,
             accountNumber : initiator.account.accountNumber,
             reference : transactionRecord.reference,

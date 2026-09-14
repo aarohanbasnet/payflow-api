@@ -7,8 +7,9 @@ import { generateAccountNumber } from "../../utils/accountNumber.js";
 import { generateUsername } from "../../utils/username.js";
 import { generateOTP, getOTPExpiry, isOTPExpired } from "../../utils/otp.js";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../../utils/jwt.js";
-import { RefreshTokenInput, LoginInput, LogoutInput, VerifyOtpInput, RegisterInput } from "./auth.schema.js";
+import { RefreshTokenInput, LoginInput, LogoutInput, VerifyOtpInput, RegisterInput, ResendOtpInput } from "./auth.schema.js";
 import { sendOtpEmail } from "../services/email/email.service.js";
+
 
 export const registerUser = async  ( input: RegisterInput) =>{
     const existingUser = await prisma.user.findFirst({
@@ -26,8 +27,12 @@ export const registerUser = async  ( input: RegisterInput) =>{
 
     const generatedUsername = await generateUsername(input.email);
     const hashedPassword = await hash(input.password);
+    const otpCode = generateOTP();
+    const hashedOTP = await hash(otpCode)
 
-    const user = await prisma.user.create({
+    const user = await prisma.$transaction( async (tx)=> {
+
+       const createdUser =  await tx.user.create({
         data : {
             name : input.name,
             email : input.email,
@@ -43,21 +48,31 @@ export const registerUser = async  ( input: RegisterInput) =>{
         include : {account : true},
     });
 
-    const otpCode = generateOTP();
-    const hashedOTP = await hash(otpCode)
-    await prisma.oTP.create({
+    await tx.oTP.create({
         data : {
             code : hashedOTP,
             expiresAt : getOTPExpiry(),
-            userId : user.id,
+            userId : createdUser.id,
         },
     });
 
-    await sendOtpEmail({
-        to : "delivered@resend.dev",
+    return createdUser;
+    });
+    
+    try{
+        await sendOtpEmail({
+        to : user.email,
         name : user.name,
         otpCode,
     });
+
+    } catch(err){
+        await prisma.user.delete({where : { id : user.id}});
+        throw new AppError(
+            "We could not send you verification email. Please try registering again", 502
+        );
+    }
+    
 
     return {
         id : user.id,
@@ -68,6 +83,50 @@ export const registerUser = async  ( input: RegisterInput) =>{
         ...(process.env.NODE_ENV !== "production" && {otp : otpCode})
     };
 };
+
+export const resendOtp = async ( input : ResendOtpInput) => {
+    const { email } = input;
+    const user = await prisma.user.findUnique({
+        where :  { email },
+        select : 
+            { id : true, name : true, isVerified : true},
+    });
+
+    if(!user) {
+        throw new AppError("No account found with this email" , 404);
+    }
+
+    if(user.isVerified){
+        throw new AppError("This account is already vefrified", 400);
+    }
+
+    await prisma.oTP.updateMany({
+        where : {userId : user.id, isUsed : false},
+         data : { isUsed : true },
+    });
+
+    const otpCode = generateOTP();
+    const hashedOTP = await hash(otpCode);
+
+    await prisma.oTP.create({
+        data : {
+            code : hashedOTP,
+            expiresAt : getOTPExpiry(),
+            userId : user.id
+        },
+    });
+
+    await sendOtpEmail({
+        to : email,
+        name : user.name || "Customer",
+        otpCode,
+    });
+
+    return {
+        message : "A new verification code has been sent to your email",
+        ...(process.env.NODE_ENV !== "production" && { otp : otpCode}),
+    }
+}
 
 
 export const verifyOtp = async ( input : VerifyOtpInput ) =>{

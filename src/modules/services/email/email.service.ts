@@ -28,7 +28,7 @@ export interface IOTPPayload {
 const sendEmail = async({ to, subject, html} : ISendEmailPayload) =>{
     try {
         const response = await resend.emails.send({
-            from : 'onboarding@resend.dev',
+            from : env.MAIL_FROM,
             to,
             subject,
             html,
