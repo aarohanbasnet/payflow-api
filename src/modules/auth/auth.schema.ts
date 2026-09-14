@@ -1,4 +1,4 @@
-import {z} from "zod"
+import {email, z} from "zod"
 
 export const registerUserSchema = z.object({
     name : z.string().min(4, "name must be at least 4 characters")
@@ -32,6 +32,10 @@ export const loginUserSchema = z.object({
     }
 );
 
+export const resendOtpSchema = z.object({
+    email : z.email("Invalid email address").trim().toLowerCase(),
+})
+
 export const verifyOtpSchema = z.object({
     userId : z.string().min(1, "userId is requied"),
     code : z.string().length(6, "OTP must be 6 digits")
@@ -52,3 +56,4 @@ export type LoginInput = z.infer< typeof loginUserSchema>;
 export type LogoutInput = z.infer< typeof logoutSchema>;
 export type RefreshTokenInput = z.infer< typeof refreshTokenSchema>;
 export type VerifyOtpInput = z.infer< typeof verifyOtpSchema>;
+export type ResendOtpInput = z.infer<typeof resendOtpSchema>;

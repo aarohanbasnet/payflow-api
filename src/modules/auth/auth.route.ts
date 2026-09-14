@@ -5,8 +5,9 @@ import { registerController,
     loginController,
     logoutController,
     refreshTokenController,
-    verifyOtpController } from "./auth.controller.js";
-import { loginUserSchema, logoutSchema, registerUserSchema, verifyOtpSchema, refreshTokenSchema} from "./auth.schema.js";
+    verifyOtpController, 
+    resendOtpController} from "./auth.controller.js";
+import { loginUserSchema, logoutSchema, registerUserSchema, verifyOtpSchema, refreshTokenSchema, resendOtpSchema} from "./auth.schema.js";
 
 const router = Router();
 
@@ -14,6 +15,7 @@ router.post("/register", authLimiter, validate(registerUserSchema, "body"), regi
 router.post("/login", authLimiter, validate(loginUserSchema, "body"), loginController);
 router.post("/logout", /*validate(logoutSchema),*/ logoutController);
 router.post("/verify-otp",authLimiter, validate(verifyOtpSchema, "body"), verifyOtpController);
+router.post("/resend-otp", authLimiter, validate(resendOtpSchema, "body"), resendOtpController);
 router.post("/refresh", authLimiter, validate(refreshTokenSchema, "body"), refreshTokenController);
 
 export default router;
