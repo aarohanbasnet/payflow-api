@@ -64,6 +64,10 @@ components:
         email:
           type: string
           format: email
+          description: >
+            Must be a real, reachable email address. A one-time verification
+            code (OTP) is sent here after registration, and the account
+            cannot log in until that code is verified.
           example: aarohan@example.com
         phone:
           type: string
@@ -119,6 +123,19 @@ components:
           type: string
           pattern: '^\d{6}$'
           example: "482913"
+
+    ResendOtpRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          description: >
+            The email used during registration. A new OTP is sent here,
+            invalidating any previous unused code. Fails with 404 if no
+            account exists for this email, or 400 if it's already verified.
+          example: aarohan@example.com
 
     RefreshTokenRequest:
       type: object
@@ -218,6 +235,13 @@ paths:
     post:
       tags: [Auth]
       summary: Register a new user
+      description: >
+        Creates an account and immediately emails a 6-digit OTP to the
+        given email address. Use a real, reachable inbox — the account
+        cannot log in (403) until that code is verified via
+        /auth/verify-otp. If the email fails to send outright, the
+        registration is rolled back entirely (502) so you can retry
+        from scratch.
       security: []
       requestBody:
         required: true
@@ -238,11 +262,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Verification email failed to send; registration was rolled back
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /auth/login:
     post:
       tags: [Auth]
-      summary: Log in with password or MPIN
+      summary: Enter your email, username, or phone number in identifier. Then provide either password or mpin for authentication. Only one of password or mpin should be provided..
       security: []
       requestBody:
         required: true
@@ -303,6 +333,41 @@ paths:
                 $ref: '#/components/schemas/SuccessResponse'
         '400':
           description: Invalid or expired OTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/resend-otp:
+    post:
+      tags: [Auth]
+      summary: Resend a fresh OTP to an unverified account
+      description: >
+        Sends a new 6-digit OTP to the given email and invalidates any
+        previously issued, unused OTP for that account, so only the
+        newest code will work.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendOtpRequest'
+      responses:
+        '200':
+          description: A new OTP was sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Account is already verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No account exists for this email
           content:
             application/json:
               schema:
