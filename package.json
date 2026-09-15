@@ -9,7 +9,7 @@
     "dev": "cross-env NODE_ENV=development tsx watch src/server.ts",
     "build": "tsc && mkdir -p dist/docs && cp src/docs/openapi.yaml dist/docs/openapi.yaml",
     "start": "node dist/server.js",
-     "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed"
   },
   "repository": {
     "type": "git",
@@ -46,6 +46,7 @@
     "@types/node": "^26.5.1",
     "@types/pdfkit": "^0.17.6",
     "@types/swagger-ui-express": "^4.1.8",
+    "@typescript/typescript-linux-x64": "^7.0.2",
     "cross-env": "^10.1.0",
     "dotenv": "^17.4.2",
     "prisma": "^7.10.0",
