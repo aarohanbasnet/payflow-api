@@ -23,6 +23,13 @@ app.use(generalLimiter);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+app.get("/health", (req, res)=>{
+    res.status(200).json({
+        status : "ok",
+        message : "PayFlow API is running",
+    });
+});
+
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/account", accountRoutes);
