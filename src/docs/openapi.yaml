@@ -4,8 +4,23 @@ info:
   description: >
     Backend payment system supporting authentication, wallet management,
     peer-to-peer transfers, utility bill payments, and invoice generation.
+
+
+    **Try it without registering:** log in via POST /auth/login with
+    email `aarohan.demo@payflow.test`, password `Demo@1234` (or MPIN
+    `1234`) to use a pre-seeded account that already has a transaction
+    history — a P2P transfer and a utility bill payment — ready to browse
+    under /transactions/history.
+
+
+    **Or try the full signup flow yourself:** POST /auth/register with
+    your own details. This requires a real, reachable email address —
+    a one-time verification code is sent there via POST /auth/verify-otp,
+    and the account can't log in until that code is verified.
   version: 1.0.0
 servers:
+  - url: /api/v1
+    description: Live server
   - url: http://localhost:5000/api/v1
     description: Local development server
 
@@ -93,12 +108,14 @@ components:
       properties:
         identifier:
           type: string
-          description: Username or phone number
-          example: aarohan99
+          description: >
+            Enter either your email, username, or phone number —
+            any one of the three is accepted here.
+          example: aarohan.demo@payflow.test
         password:
           type: string
           format: password
-          example: superSecret123
+          example: Demo@1234
 
     LoginWithMpin:
       type: object
@@ -106,8 +123,10 @@ components:
       properties:
         identifier:
           type: string
-          description: Username or phone number
-          example: aarohan99
+          description: >
+            Enter either your email, username, or phone number —
+            any one of the three is accepted here.
+          example: aarohan.demo@payflow.test
         mpin:
           type: string
           pattern: '^\d{4}$'
@@ -192,7 +211,8 @@ components:
           description: >
             The recipient's identifier — a username, phone number, or
             account number, matching whatever is set in identifierType.
-          example: "9812345678"
+            Example uses the seeded demo recipient, Sita Demo.
+          example: "9800000002"
         amount:
           type: number
           minimum: 100
@@ -272,7 +292,13 @@ paths:
   /auth/login:
     post:
       tags: [Auth]
-      summary: Enter your email, username, or phone number in identifier. Then provide either password or mpin for authentication. Only one of password or mpin should be provided..
+      summary: Log in with password or MPIN
+      description: >
+        A seeded demo account is available for testing without needing to
+        register: email aarohan.demo@payflow.test, password Demo@1234,
+        MPIN 1234. This account already has a transaction history
+        (a P2P transfer and a utility payment) visible via
+        /transactions/history.
       security: []
       requestBody:
         required: true
@@ -582,7 +608,10 @@ paths:
           required: true
           schema:
             type: string
-          description: Transaction reference code
+            example: "TX-DEMO0-0001-TRFR"
+          description: >
+            Transaction reference code. Get the reference code from 
+            transaction history.
       responses:
         '200':
           description: Transaction retrieved successfully
@@ -613,7 +642,9 @@ paths:
           required: true
           schema:
             type: string
-          description: Transaction reference code
+            example: "TX-DEMO0-0001-TRFR"
+          description: >
+            Transaction reference code. Get the reference code from transction hsitory.
       responses:
         '200':
           description: PDF invoice
