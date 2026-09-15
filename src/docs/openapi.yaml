@@ -1,23 +1,23 @@
 openapi: 3.0.3
 info:
-  title: Payflow API
-  description: >
-    Backend payment system supporting authentication, wallet management,
-    peer-to-peer transfers, utility bill payments, and invoice generation.
-
-
-    **Try it without registering:** log in via POST /auth/login with
-    email `aarohan.demo@payflow.test`, password `Demo@1234` (or MPIN
-    `1234`) to use a pre-seeded account that already has a transaction
-    history — a P2P transfer and a utility bill payment — ready to browse
-    under /transactions/history.
-
-
-    **Or try the full signup flow yourself:** POST /auth/register with
-    your own details. This requires a real, reachable email address —
-    a one-time verification code is sent there via POST /auth/verify-otp,
-    and the account can't log in until that code is verified.
+  title: PayFlow API
   version: 1.0.0
+  description: |
+    Backend payment system with authentication, wallet management, peer-to-peer transfers, utility bill payments, and invoice generation.
+
+    **Quick demo:**  
+    Log in with `POST /auth/login` using:
+    - Email: `aarohan.demo@payflow.test`
+    - Password: `Demo@1234`
+    - MPIN: `1234`
+
+    The demo account is already verified and has transaction history, including a P2P transfer and a utility bill payment. You can view it with `GET /transactions/history`.
+
+    **After login:**  
+    Copy the `accessToken` from the login response, click **Authorize** at the top of this page, paste the token, and click **Authorize**. You can then try the protected endpoints.
+
+    **Want to create your own account?**  
+    Use `POST /auth/register` with a real, reachable email address. PayFlow will send a one-time verification code to that email. Verify it using `POST /auth/verify-otp`, then log in and authorize your requests using the access token.
 servers:
   - url: /api/v1
     description: Live server
